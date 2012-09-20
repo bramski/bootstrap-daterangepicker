@@ -1,10 +1,12 @@
 /**
-* @version: 1.0
+* @version: 1.0.1-custom
 * @author: Dan Grossman http://www.dangrossman.info/
 * @date: 2012-08-20
 * @copyright: Copyright (c) 2012 Dan Grossman. All rights reserved.
 * @license: Licensed under Apache License v2.0. See http://www.apache.org/licenses/LICENSE-2.0
 * @website: http://www.improvely.com/
+* IMPORTANT: This file is forked from Dan Grossman's work, and is listed at:
+* https://github.com/bramski/bootstrap-daterangepicker
 */
 !function ($) {
 
@@ -51,8 +53,8 @@
         if (this.element.is('input')) {
             this.element.on({
                 click: $.proxy(this.show, this),
-                focus: $.proxy(this.show, this),
-                blur: $.proxy(this.hide, this)
+                focus: $.proxy(this.show, this)
+                //blur: $.proxy(this.hide, this)
             });
         } else {
             this.element.on('click', $.proxy(this.show, this));
@@ -73,11 +75,11 @@
                   '<div class="range_inputs">' +
                     '<div style="float: left">' +
                       '<label for="daterangepicker_start">' + this.locale.fromLabel + '</label>' +
-                      '<input class="input-mini" type="text" name="daterangepicker_start" value="" disabled="disabled" />' +
+                      '<input class="input-mini" type="text" name="daterangepicker_start" value="" />' +
                     '</div>' +
                     '<div style="float: left; padding-left: 11px">' +
                       '<label for="daterangepicker_end">' + this.locale.toLabel + '</label>' +
-                      '<input class="input-mini" type="text" name="daterangepicker_end" value="" disabled="disabled" />' +
+                      '<input class="input-mini" type="text" name="daterangepicker_end" value="" />' +
                     '</div>' +
                     '<button class="btn btn-small btn-success" disabled="disabled">' + this.locale.applyLabel + '</button>' +
                   '</div>' +
@@ -155,6 +157,13 @@
 
         //event listeners
         this.container.on('mousedown', $.proxy(this.mousedown, this));
+
+        this.container.find('.calendar').on('keyup', 'input', $.proxy(this.changeYearMonth, this));
+        this.container.find('.calendar').on('mousedown', 'input', $.proxy(this.focusControl, this));
+
+        this.container.find('.calendar').on('change', 'select', $.proxy(this.changeYearMonth, this));
+        this.container.find('.calendar').on('mousedown', 'select', $.proxy(this.focusControl, this));
+
         this.container.find('.calendar').on('click', '.prev', $.proxy(this.clickPrev, this));
         this.container.find('.calendar').on('click', '.next', $.proxy(this.clickNext, this));
         this.container.find('.ranges').on('click', 'button', $.proxy(this.clickApply, this));
@@ -181,6 +190,10 @@
         mousedown: function (e) {
             e.stopPropagation();
             e.preventDefault();
+        },
+
+        focusControl: function(e){
+            e.stopPropagation();
         },
 
         updateView: function () {
@@ -250,7 +263,6 @@
             }
 
             this.changed = false;
-
             $(document).on('mousedown', $.proxy(this.hide, this));
         },
 
@@ -292,6 +304,29 @@
                 this.container.find('.calendar').hide();
                 this.hide();
             }
+        },
+
+        changeYearMonth: function(e){
+
+            calendar = $(e.currentTarget).closest('.calendar').is('.left') ? this.leftCalendar : this.rightCalendar;
+
+            if($(e.currentTarget).is('select')){
+                newMonth = $(e.currentTarget).val();
+                calendar.month.set({ month: Number(newMonth-1), year: calendar.year});
+                this.updateCalendars();
+            }
+
+            if($(e.currentTarget).is('input')){
+                newYear = $(e.currentTarget).val()
+                if(newYear.length == 4){
+                    calendar.month.set({ month: Number(calendar.month.toString('MM'))-1, year: Number(newYear)});
+                    this.updateCalendars();
+                }
+            }
+
+            
+            e.stopPropagation();
+            return false;
         },
 
         clickPrev: function (e) {
@@ -408,7 +443,20 @@
             html += '<thead>';
             html += '<tr>';
             html += '<th class="prev"><i class="icon-arrow-left"></i></th>';
-            html += '<th colspan="5">' + calendar[1][1].toString("MMMM yyyy") + '</th>';
+            html += '<th colspan="5" class="quick-select"><select name="calendar-month" class="input-mini">';
+
+            $.each(Date.CultureInfo.abbreviatedMonthNames, function(index, month){
+                monthSelected = '';
+                monthNumber = Number(index)+1;
+
+                if(monthNumber == Number(calendar[1][1].toString('MM')))
+                    monthSelected = ' selected="selected" ';
+
+                html += '<option ' + monthSelected + ' value="' + monthNumber + '">' + month + '</option>';
+            });
+
+            html += '</select>'
+            html += '<input name="calendar-year" type="text" class="input-mini" value="' + calendar[1][1].toString("yyyy") + '"/></th>';
             html += '<th class="next"><i class="icon-arrow-right"></i></th>';
             html += '</tr>';
             html += '<tr>';
